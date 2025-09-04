@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Ganache Network</title>
+</head>
+<body>
+    <h1>🔗 Add Ganache Network to MetaMask</h1>
+    <button onclick="addGanacheNetwork()" style="padding: 10px 20px; font-size: 16px; background: #f39c12; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        ➕ Add Ganache Network
+    </button>
+    
+    <script>
+        async function addGanacheNetwork() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0x539', // 1337 in hex
+                        chainName: 'Ganache Local',
+                        rpcUrls: ['http://127.0.0.1:7545'],
+                        nativeCurrency: {
+                            name: 'Ethereum',
+                            symbol: 'ETH',
+                            decimals: 18
+                        }
+                    }]
+                });
+                alert('✅ Ganache network added successfully!');
+            } catch (error) {
+                alert('❌ Failed to add network: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

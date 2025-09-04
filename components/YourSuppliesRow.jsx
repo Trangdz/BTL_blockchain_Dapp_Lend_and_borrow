@@ -22,6 +22,8 @@ const YourSuppliesRow = ({
           <div className="flex items-center">
             <Image
               src={image}
+              width={28}
+              height={28}
               alt="coin-image"
               className="card-img-top w-5 h-5 md:h-7 md:w-7"
             />

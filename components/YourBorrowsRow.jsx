@@ -18,6 +18,8 @@ const YourBorrowsRow = ({
           <div className="flex items-center">
             <Image
               src={image}
+              width={28}
+              height={28}
               className="card-img-top w-5 h-5 md:h-7 md:w-7"
               alt="coin-image"
             />

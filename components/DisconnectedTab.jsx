@@ -9,6 +9,8 @@ const DisconnectedTab = () => {
       <div className="flex flex-col w-full bg-white rounded-md py-5 md:py-10  justify-center items-center text-center ">
         <Image
           src={metamask}
+          width={128}
+          height={128}
           alt="metamask"
           className="w-24 h-24 md:w-32 md:h-32 mb-3"
         />
