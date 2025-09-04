@@ -4,7 +4,7 @@ import { useContext, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.min.css";
 import lendContext from "../context/lendContext";
-import { Header, MainCard, LendingPool, DisconnectedTab } from "../components";
+import { Header, MainCard, LendingPool, DisconnectedTab, HealthFactorCard, AssetMetrics } from "../components";
 
 const Home: NextPage = () => {
   const {
@@ -15,6 +15,11 @@ const Home: NextPage = () => {
     getAssetsToBorrow,
     updateInterests,
     getYourBorrows,
+    // LendHub v2 data
+    healthFactor = "0",
+    borrowPower = "0", 
+    utilizationRate = "0",
+    assetMetrics = [],
   } = useContext(lendContext);
 
   useEffect(() => {
@@ -25,10 +30,18 @@ const Home: NextPage = () => {
     // setInterval(() => connectWallet(), 5000);
     // updateInterests();
 
-    getUserAssets();
-    getYourSupplies();
-    getAssetsToBorrow();
-    getYourBorrows();
+    // Only call these if wallet is connected
+    if (metamaskDetails.currentAccount && metamaskDetails.contractAddresses) {
+      console.log("🔄 Fetching user data...");
+      try {
+        getUserAssets();
+        getYourSupplies();
+        getAssetsToBorrow();
+        getYourBorrows();
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    }
   }, [metamaskDetails]);
 
   return (
@@ -49,7 +62,24 @@ const Home: NextPage = () => {
           {!metamaskDetails.currentAccount ? (
             <DisconnectedTab />
           ) : (
-            <LendingPool />
+            <div>
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Health Factor Card - Only show if user has positions */}
+                {(parseFloat(healthFactor) > 0 || parseFloat(borrowPower) > 0) && (
+                  <HealthFactorCard 
+                    healthFactor={healthFactor}
+                    borrowPower={borrowPower}
+                    utilizationRate={utilizationRate}
+                  />
+                )}
+                
+                {/* Asset Metrics - Market Overview */}
+                <AssetMetrics assetData={assetMetrics} />
+              </div>
+              
+              {/* Original LendingPool component */}
+              <LendingPool />
+            </div>
           )}
         </div>
       </main>

@@ -3,22 +3,87 @@ import LendContext from "./lendContext";
 import { ethers } from "ethers";
 const tokensList = require("../token-list-goerli");
 
-// TODO : uncomment for sepolia
+// LendHub v2 - Use new ABIs for Ganache, old ABIs for Sepolia
+const getABIs = (chainId) => {
+  if (chainId === 1337) {
+    // Ganache - use new LendHub v2 ABIs
+    try {
+      return {
+        TokenABI: require("../artifacts/contracts/mocks/ERC20Mintable.sol/ERC20Mintable.json"),
+        LendingPoolABI: require("../artifacts/contracts/pool/IsolatedLendingPool.sol/IsolatedLendingPool.json"),
+        LendingHelperABI: require("../artifacts/contracts/LendingHelper.sol/LendingHelper.json")
+      };
+    } catch (error) {
+      console.warn("Could not load v2 ABIs, falling back to v1");
+      return {
+        TokenABI: require("../abis/DAIToken.json"),
+        LendingPoolABI: require("../abis/LendingPool.json"),
+        LendingHelperABI: require("../abis/LendingHelper.json")
+      };
+    }
+  } else {
+    // Sepolia - use original ABIs
+    return {
+      TokenABI: require("../abis/DAIToken.json"),
+      LendingPoolABI: require("../abis/LendingPool.json"),
+      LendingHelperABI: require("../abis/LendingHelper.json")
+    };
+  }
+};
+
+// Default fallback ABIs
 const TokenABI = require("../abis/DAIToken.json");
 const LendingPoolABI = require("../abis/LendingPool.json");
 const LendingHelperABI = require("../abis/LendingHelper.json");
 
-// TODO : uncomment for localhost
-// const TokenABI = require("../artifacts/contracts/DAIToken.sol/DAIToken.json");
-// const LendingPoolABI = require("../artifacts/contracts/LendingPool.sol/LendingPool.json");
-// const LendingHelperABI = require("../artifacts/contracts/LendingHelper.sol/LendingHelper.json");
-
-// Importing Bank contract details
-import {
-  ETHAddress,
-  LendingPoolAddress,
-  LendingHelperAddress,
-} from "../addresses";
+// Dynamic import based on network
+const getContractAddresses = (chainId) => {
+  try {
+    if (chainId === 1337) {
+      // Ganache local - use dynamic import with error handling
+      try {
+        const ganacheAddresses = require("../addresses-ganache.js");
+        return {
+          ETHAddress: ganacheAddresses.ETHAddress || "0x0000000000000000000000000000000000000000",
+          LendingPoolAddress: ganacheAddresses.LendingPoolAddress || ganacheAddresses.default?.CORE_POOL,
+          LendingHelperAddress: ganacheAddresses.LendingHelperAddress || ganacheAddresses.default?.LendingHelper,
+        };
+      } catch (error) {
+        console.warn("Ganache addresses not found, using fallback");
+        // Fallback to hardcoded addresses from deployment
+        return {
+          ETHAddress: "0x0000000000000000000000000000000000000000",
+          LendingPoolAddress: "0x6F38d044ec9598d36dfC7f6bb7E7C028C881484c",
+          LendingHelperAddress: "0x8460CD29899eCA6b72D5cee97c78d79d39761B53",
+        };
+      }
+    } else {
+      // Sepolia or other testnets
+      try {
+        const sepoliaAddresses = require("../addresses.js");
+        return {
+          ETHAddress: sepoliaAddresses.ETHAddress,
+          LendingPoolAddress: sepoliaAddresses.LendingPoolAddress,
+          LendingHelperAddress: sepoliaAddresses.LendingHelperAddress,
+        };
+      } catch (error) {
+        console.warn("Sepolia addresses not found, using default");
+        return {
+          ETHAddress: "0x0000000000000000000000000000000000000000",
+          LendingPoolAddress: "",
+          LendingHelperAddress: "",
+        };
+      }
+    }
+  } catch (error) {
+    console.error("Error loading contract addresses:", error);
+    return {
+      ETHAddress: "0x0000000000000000000000000000000000000000",
+      LendingPoolAddress: "",
+      LendingHelperAddress: "",
+    };
+  }
+};
 
 const numberToEthers = (number) => {
   return ethers.utils.parseEther(number.toString());
@@ -33,6 +98,8 @@ const LendState = (props) => {
     networkName: null,
     signer: null,
     currentAccount: null,
+    chainId: null,
+    contractAddresses: null,
   });
 
   const [userAssets, setUserAssets] = useState([]);
@@ -59,52 +126,97 @@ const LendState = (props) => {
   });
 
   const connectWallet = async () => {
-    console.log("1. Connecting to wallet...");
+    console.log("🔗 Starting wallet connection...");
     const { ethereum } = window;
     const failMessage = "Please install Metamask & connect your Metamask";
+    
     try {
-      if (!ethereum) return; // console.log(failMessage);
+      // Check if MetaMask is installed
+      if (!ethereum) {
+        console.error("❌ MetaMask not detected");
+        alert(failMessage);
+        return;
+      }
+      
+      console.log("✅ MetaMask detected");
+      console.log("📋 Requesting accounts...");
       const account = await ethereum.request({
         method: "eth_requestAccounts",
       });
+      console.log("✅ Accounts received:", account);
 
       window.ethereum.on("chainChanged", () => {
+        console.log("🔄 Chain changed, reloading...");
         window.location.reload();
       });
       window.ethereum.on("accountsChanged", () => {
+        console.log("👤 Accounts changed, reloading...");
         window.location.reload();
       });
 
+      console.log("🌐 Getting network info...");
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const network = await provider.getNetwork();
       const networkName = network.name;
       const signer = provider.getSigner();
+      console.log(`📡 Network: ${networkName}, Chain ID: ${network.chainId}`);
 
-      if (networkName != "sepolia") {
-        alert("Please switch your network to Sepolia Testnet");
+      // Support multiple networks: Ganache local, Sepolia testnet
+      const supportedNetworks = ["sepolia", "unknown"]; // "unknown" for Ganache local
+      const chainId = network.chainId;
+      
+      // Allow Ganache (chainId 1337) and Sepolia (chainId 11155111)
+      if (chainId !== 1337 && chainId !== 11155111) {
+        alert("Please switch to either:\n- Ganache Local (localhost:7545, Chain ID: 1337)\n- Sepolia Testnet (Chain ID: 11155111)");
         return;
       }
+      
+      console.log(`Connected to network: ${networkName} (Chain ID: ${chainId})`);
 
       if (account.length) {
         let currentAddress = account[0];
+        
+        // Get contract addresses based on network
+        const addresses = getContractAddresses(chainId);
+        console.log("Using contract addresses:", addresses);
+        
         setMetamaskDetails({
           provider: provider,
           networkName: networkName,
           signer: signer,
           currentAccount: currentAddress,
+          chainId: chainId,
+          contractAddresses: addresses,
         });
-        console.log("Connected to wallet....");
+        console.log(`Connected to wallet on ${networkName} (Chain ID: ${chainId})`);
       } else {
+        console.error("❌ No accounts returned");
         alert(failMessage);
         return;
       }
     } catch (error) {
-      reportError(error);
+      console.error("❌ Connection failed:", error);
+      
+      // Specific error handling
+      if (error.code === 4001) {
+        alert("Connection rejected by user. Please try again and approve the connection.");
+      } else if (error.code === -32002) {
+        alert("Connection request already pending. Please check MetaMask.");
+      } else {
+        alert(`Connection failed: ${error.message || "Unknown error"}`);
+      }
     }
   };
 
   const getUserAssets = async () => {
     console.log("2. Getting Assets to supply...");
+    
+    // Skip if not connected or no addresses
+    if (!metamaskDetails.currentAccount || !metamaskDetails.contractAddresses) {
+      console.log("⏭️ Skipping getUserAssets - not connected");
+      return;
+    }
+    
     try {
       const assets = await Promise.all(
         tokensList.token.map(async (token) => {

@@ -28,3 +28,7 @@ export { default as ModalBorrow } from "./ModalBorrow";
 export { default as YourBorrows } from "./YourBorrows";
 export { default as YourBorrowsRow } from "./YourBorrowsRow";
 export { default as ModalRepay } from "./ModalRepay";
+
+// LendHub v2 components
+export { default as HealthFactorCard } from "./HealthFactorCard";
+export { default as AssetMetrics } from "./AssetMetrics";
