@@ -32,3 +32,4 @@ export { default as ModalRepay } from "./ModalRepay";
 // LendHub v2 components
 export { default as HealthFactorCard } from "./HealthFactorCard";
 export { default as AssetMetrics } from "./AssetMetrics";
+export { default as RefreshDataButton } from "./RefreshDataButton";

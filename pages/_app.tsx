@@ -3,15 +3,15 @@ import type { AppProps } from "next/app";
 
 // Applying Inter font
 import { Inter } from "@next/font/google";
-import LendStateV2 from "../context/LendStateV2";
+import LendStateProduction from "../context/LendStateProduction";
 
 const inter = Inter({ subsets: ["latin"] });
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <main className={inter.className}>
-      <LendStateV2>
+      <LendStateProduction>
         <Component {...pageProps} />
-      </LendStateV2>
+      </LendStateProduction>
     </main>
   );
 }

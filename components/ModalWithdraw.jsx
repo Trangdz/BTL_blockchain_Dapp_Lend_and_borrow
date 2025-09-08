@@ -62,7 +62,16 @@ const ModalWithdraw = ({
 
   const handleWithdraw = async () => {
     setIsWithdrawing(true);
-    let transaction = await WithdrawAsset(address, inputValue);
+    console.log(`💸 [MODAL] Withdrawing ${inputValue} ${name} (address: ${address})`);
+    
+    // For ETH, use the actual token address (WETH) for contract calls
+    let actualAddress = address;
+    if (name === "ETH") {
+      // This should be the WETH address for contract calls
+      actualAddress = address; // The address passed should already be the actual token address
+    }
+    
+    let transaction = await WithdrawAsset(actualAddress, inputValue);
 
     if (transaction.status == 200) {
       toast.success(`Withdrawn ${inputValue} ${name}`);
@@ -72,7 +81,14 @@ const ModalWithdraw = ({
     } else {
       const pattern = /'([^']*)'/;
       const error = transaction.message.match(pattern);
-      toast.error(`${error[1]}`);
+      
+      // Safe error handling
+      if (error && error[1]) {
+        toast.error(`${error[1]}`);
+      } else {
+        toast.error(transaction.message || "Withdrawal failed");
+      }
+      
       console.log("ERROR: " + transaction.message);
       setIsWithdrawing(false);
     }

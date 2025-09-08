@@ -19,12 +19,14 @@ async function main() {
   // 1. Deploy Mock Tokens
   console.log("\n💰 Deploying Mock Tokens...");
   
-  const ERC20Mintable = await ethers.getContractFactory("ERC20Mintable");
-  
-  const weth = await ERC20Mintable.deploy("Wrapped Ether", "WETH", 18, ethers.utils.parseEther("1000000"));
+  // Deploy proper WETH with deposit/withdraw functions
+  const WETH9 = await ethers.getContractFactory("WETH9");
+  const weth = await WETH9.deploy();
   await weth.deployed();
   deployed.mockTokens.WETH = weth.address;
-  console.log("WETH deployed to:", weth.address);
+  console.log("WETH9 deployed to:", weth.address);
+  
+  const ERC20Mintable = await ethers.getContractFactory("ERC20Mintable");
   
   const usdc = await ERC20Mintable.deploy("USD Coin", "USDC", 6, ethers.utils.parseUnits("1000000", 6));
   await usdc.deployed();

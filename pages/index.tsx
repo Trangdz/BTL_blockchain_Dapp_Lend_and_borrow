@@ -4,7 +4,7 @@ import { useContext, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.min.css";
 import lendContext from "../context/lendContext";
-import { Header, MainCard, LendingPool, DisconnectedTab, HealthFactorCard, AssetMetrics } from "../components";
+import { Header, MainCard, LendingPool, DisconnectedTab, HealthFactorCard, AssetMetrics, RefreshDataButton } from "../components";
 
 const Home: NextPage = () => {
   const {
@@ -79,6 +79,9 @@ const Home: NextPage = () => {
               
               {/* Original LendingPool component */}
               <LendingPool />
+              
+              {/* Refresh Data Button */}
+              <RefreshDataButton />
             </div>
           )}
         </div>
